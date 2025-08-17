@@ -1,0 +1,120 @@
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import SpeedTestResult from './models/SpeedTestResult.js';
+import { fileURLToPath } from 'url';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+// MongoDB connection
+const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/Speedtestaa';
+mongoose.connect(mongoUri);
+
+// Serve static files from the frontend build
+// Serve static files from the frontend build (after API routes)
+// app.use(express.static(path.join(__dirname, '../dist')));
+
+// Custom backend healthcheck on root route
+app.get('/', (req, res) => {
+  res.send('backend is running paseka 🤣🤣🔥');
+});
+
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running.' });
+});
+
+
+// Submit a speed test result (MongoDB, auto country detection)
+app.post('/api/speedtest', async (req, res) => {
+  let { country, download, upload, ping, jitter, timestamp } = req.body;
+  console.log('Received speedtest POST:', req.body);
+  if (!download || !upload) {
+    console.error('Missing required fields:', req.body);
+    return res.status(400).json({ error: 'Missing required fields.' });
+  }
+  // If country not provided, use ip-api.com to detect from IP
+  if (!country) {
+    try {
+      const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
+  const geoData = await geoRes.json();
+      country = geoData.country || 'Unknown';
+    } catch {
+      country = 'Unknown';
+    }
+  }
+  try {
+    const result = new SpeedTestResult({ country, download, upload, ping, jitter, timestamp });
+    await result.save();
+    console.log('Saved result:', result);
+    res.json({ success: true, country });
+  } catch (err) {
+    console.error('Failed to save result:', err);
+    res.status(500).json({ error: 'Failed to save result.' });
+  }
+});
+
+// Get all speed test results (MongoDB)
+app.get('/api/speedtest', async (req, res) => {
+  try {
+    const results = await SpeedTestResult.find({});
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch results.' });
+  }
+});
+
+// Get country averages (MongoDB)
+app.get('/api/country-averages', async (req, res) => {
+  try {
+    const results = await SpeedTestResult.aggregate([
+      {
+        $group: {
+          _id: '$country',
+          avgDownload: { $avg: '$download' },
+          avgUpload: { $avg: '$upload' },
+          avgPing: { $avg: '$ping' },
+          avgJitter: { $avg: '$jitter' },
+          tests: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          country: '$_id',
+          avgDownload: 1,
+          avgUpload: 1,
+          avgPing: 1,
+          avgJitter: 1,
+          tests: 1,
+          _id: 0
+        }
+      }
+    ]);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch country averages.' });
+  }
+});
+
+// Fallback to index.html for SPA routing
+// Fallback to index.html for SPA routing (only for non-API routes)
+app.get(/^((?!\/api\/).)*$/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
