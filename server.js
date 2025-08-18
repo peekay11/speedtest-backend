@@ -76,11 +76,15 @@ app.post('/api/speedtest', async (req, res) => {
 
   if (!country) {
     try {
-      const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      let ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+      // Remove IPv6 prefix if present
+      if (ip && ip.startsWith('::ffff:')) ip = ip.replace('::ffff:', '');
+      console.log('Detected IP for geo lookup:', ip);
       const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
       const geoData = await geoRes.json();
       country = geoData.country || 'Unknown';
-    } catch {
+    } catch (err) {
+      console.error('Geo lookup failed:', err);
       country = 'Unknown';
     }
   }
