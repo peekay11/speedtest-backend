@@ -1,47 +1,3 @@
-// Get a single speed test result by ID
-app.get('/api/speedtest/:id', async (req, res) => {
-  try {
-    const result = await SpeedTestResult.findById(req.params.id);
-    if (!result) return res.status(404).json({ error: 'Result not found.' });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch result.' });
-  }
-});
-
-// Update a speed test result by ID
-app.put('/api/speedtest/:id', async (req, res) => {
-  try {
-    const updated = await SpeedTestResult.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Result not found.' });
-    res.json(updated);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to update result.' });
-  }
-});
-
-// Delete a speed test result by ID
-app.delete('/api/speedtest/:id', async (req, res) => {
-  try {
-    const deleted = await SpeedTestResult.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: 'Result not found.' });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to delete result.' });
-  }
-});
-
-// Get all speed test results (duplicate endpoint for frontend compatibility)
-app.get('/api/results', async (req, res) => {
-  try {
-    const results = await SpeedTestResult.find({});
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch results.' });
-  }
-});
-// ...existing code...
-// Move CRUD routes below app initialization
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -65,16 +21,19 @@ app.use(express.json());
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/Speedtestaa';
 mongoose.connect(mongoUri);
 
-// Serve static files from the frontend build
-// Serve static files from the frontend build (after API routes)
-// app.use(express.static(path.join(__dirname, '../dist')));
+// Serve static files from the frontend build (optional)
+app.use(express.static(path.join(__dirname, '../dist')));
 
-// Custom backend healthcheck on root route
+// Health check
 app.get('/', (req, res) => {
   res.send('backend is running paseka 🤣🤣🔥');
 });
 
-// Add GET /api/speedtest endpoint for frontend compatibility
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running.' });
+});
+
+// Get all speed test results
 app.get('/api/speedtest', async (req, res) => {
   try {
     const results = await SpeedTestResult.find({});
@@ -84,32 +43,48 @@ app.get('/api/speedtest', async (req, res) => {
   }
 });
 
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running.' });
+// Duplicate endpoint for frontend compatibility
+app.get('/api/results', async (req, res) => {
+  try {
+    const results = await SpeedTestResult.find({});
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch results.' });
+  }
 });
 
+// Get a single result by ID
+app.get('/api/speedtest/:id', async (req, res) => {
+  try {
+    const result = await SpeedTestResult.findById(req.params.id);
+    if (!result) return res.status(404).json({ error: 'Result not found.' });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch result.' });
+  }
+});
 
-// Submit a speed test result (MongoDB, auto country detection)
+// Submit a new speed test result
 app.post('/api/speedtest', async (req, res) => {
   let { country, download, upload, ping, jitter, timestamp } = req.body;
   console.log('Received speedtest POST:', req.body);
+
   if (!download || !upload) {
     console.error('Missing required fields:', req.body);
     return res.status(400).json({ error: 'Missing required fields.' });
   }
-  // If country not provided, use ip-api.com to detect from IP
+
   if (!country) {
     try {
       const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-  const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
-  const geoData = await geoRes.json();
+      const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
+      const geoData = await geoRes.json();
       country = geoData.country || 'Unknown';
     } catch {
       country = 'Unknown';
     }
   }
+
   try {
     const result = new SpeedTestResult({ country, download, upload, ping, jitter, timestamp });
     await result.save();
@@ -121,17 +96,29 @@ app.post('/api/speedtest', async (req, res) => {
   }
 });
 
-// Get all speed test results (MongoDB)
-app.get('/api/speedtest', async (req, res) => {
+// Update a result by ID
+app.put('/api/speedtest/:id', async (req, res) => {
   try {
-    const results = await SpeedTestResult.find({});
-    res.json(results);
+    const updated = await SpeedTestResult.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Result not found.' });
+    res.json(updated);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch results.' });
+    res.status(500).json({ error: 'Failed to update result.' });
   }
 });
 
-// Get country averages (MongoDB)
+// Delete a result by ID
+app.delete('/api/speedtest/:id', async (req, res) => {
+  try {
+    const deleted = await SpeedTestResult.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Result not found.' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete result.' });
+  }
+});
+
+// Country averages
 app.get('/api/country-averages', async (req, res) => {
   try {
     const results = await SpeedTestResult.aggregate([
@@ -163,8 +150,7 @@ app.get('/api/country-averages', async (req, res) => {
   }
 });
 
-// Fallback to index.html for SPA routing
-// Fallback to index.html for SPA routing (only for non-API routes)
+// SPA fallback
 app.get(/^((?!\/api\/).)*$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
