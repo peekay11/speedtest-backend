@@ -30,6 +30,7 @@ app.delete('/api/speedtest/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete result.' });
   }
 });
+
 // Get all speed test results (duplicate endpoint for frontend compatibility)
 app.get('/api/results', async (req, res) => {
   try {
@@ -39,6 +40,8 @@ app.get('/api/results', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch results.' });
   }
 });
+// ...existing code...
+// Move CRUD routes below app initialization
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
