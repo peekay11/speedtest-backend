@@ -1,3 +1,12 @@
+// Get all speed test results (duplicate endpoint for frontend compatibility)
+app.get('/api/results', async (req, res) => {
+  try {
+    const results = await SpeedTestResult.find({});
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch results.' });
+  }
+});
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
