@@ -1,3 +1,35 @@
+// Get a single speed test result by ID
+app.get('/api/speedtest/:id', async (req, res) => {
+  try {
+    const result = await SpeedTestResult.findById(req.params.id);
+    if (!result) return res.status(404).json({ error: 'Result not found.' });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch result.' });
+  }
+});
+
+// Update a speed test result by ID
+app.put('/api/speedtest/:id', async (req, res) => {
+  try {
+    const updated = await SpeedTestResult.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Result not found.' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update result.' });
+  }
+});
+
+// Delete a speed test result by ID
+app.delete('/api/speedtest/:id', async (req, res) => {
+  try {
+    const deleted = await SpeedTestResult.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Result not found.' });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete result.' });
+  }
+});
 // Get all speed test results (duplicate endpoint for frontend compatibility)
 app.get('/api/results', async (req, res) => {
   try {
@@ -37,6 +69,16 @@ mongoose.connect(mongoUri);
 // Custom backend healthcheck on root route
 app.get('/', (req, res) => {
   res.send('backend is running paseka 🤣🤣🔥');
+});
+
+// Add GET /api/speedtest endpoint for frontend compatibility
+app.get('/api/speedtest', async (req, res) => {
+  try {
+    const results = await SpeedTestResult.find({});
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch results.' });
+  }
 });
 
 
