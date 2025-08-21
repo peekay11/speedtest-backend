@@ -11,31 +11,13 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import mongoose from 'mongoose';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import SpeedTestResult from './models/SpeedTestResult.js';
 import BlogPost from './models/BlogPost.js';
-// Create a new blog post
-app.post('/api/blogs', async (req, res) => {
-  try {
-    const { title, body, author, tags, date, readTime } = req.body;
-    if (!title || !body || !date || !readTime) {
-      return res.status(400).json({ error: 'Missing required fields.' });
-    }
-    const blogPost = new BlogPost({
-      title,
-      body,
-      author: author || 'Anonymous',
-      tags: Array.isArray(tags) ? tags : [],
-      date,
-      readTime
-      
-    });
-    await blogPost.save();
-    res.status(201).json(blogPost);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to create blog post.' });
-  }
-});
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -65,17 +47,37 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running.' });
 });
 
-// Get all speed test results
-app.get('/api/speedtest', async (req, res) => {
+// Get all blog posts
+app.get('/api/blogs', async (req, res) => {
   try {
-    const results = await SpeedTestResult.find({});
-    res.json(results);
+    const posts = await BlogPost.find({}).sort({ date: -1 });
+    res.json(posts);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch results.' });
+    res.status(500).json({ error: 'Failed to fetch blog posts.' });
   }
 });
 
-// Duplicate endpoint for frontend compatibility
+// Create a new blog post
+app.post('/api/blogs', async (req, res) => {
+  try {
+    const { title, body, author, tags, date, readTime } = req.body;
+    if (!title || !body || !date || !readTime) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+    const blogPost = new BlogPost({
+      title,
+      body,
+      author: author || 'Anonymous',
+      tags: Array.isArray(tags) ? tags : [],
+      date,
+      readTime
+    });
+    await blogPost.save();
+    res.status(201).json(blogPost);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create blog post.' });
+  }
+});
 app.get('/api/results', async (req, res) => {
   try {
     const results = await SpeedTestResult.find({});
