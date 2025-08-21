@@ -1,3 +1,13 @@
+// Get a single blog post by ID
+app.get('/api/blogs/:id', async (req, res) => {
+  try {
+    const post = await BlogPost.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Blog post not found.' });
+    res.json(post);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch blog post.' });
+  }
+});
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
