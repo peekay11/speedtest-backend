@@ -5,6 +5,7 @@ const BlogPostSchema = new mongoose.Schema({
   body: { type: String, required: true },
   author: { type: String, default: 'Anonymous' },
   tags: [String],
+  category: { type: String, default: 'General' },
   date: { type: String, required: true },
   readTime: { type: Number, required: true }
 });
