@@ -28,6 +28,7 @@ app.post('/api/blogs', async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       date,
       readTime
+      
     });
     await blogPost.save();
     res.status(201).json(blogPost);
