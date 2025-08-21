@@ -1,3 +1,13 @@
+// Edit a blog post by ID
+app.put('/api/blogs/:id', async (req, res) => {
+  try {
+    const updated = await BlogPost.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: 'Blog post not found.' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update blog post.' });
+  }
+});
 
 import express from 'express';
 import cors from 'cors';
